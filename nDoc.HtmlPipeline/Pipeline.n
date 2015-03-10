@@ -1,0 +1,75 @@
+﻿using Nemerle.Collections;
+using Nemerle.Text;
+using Nemerle.Utility;
+using Nemerle.Macros;
+using Nemerle.Assertions;
+
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+
+using CsQuery;
+
+namespace nDoc.HtmlPipeline
+{
+	using Filters;
+	
+	public variant DocumentOrHtml
+	{
+		| Document { value : CQ }
+		| HTML { value : string }
+	}
+	
+	public class Pipeline
+	{
+		public static Parse(content : DocumentOrHtml) : CQ
+		{
+			match (content)
+			{
+				| Document (doc) => { doc };
+				| HTML (html) => CQ(html)
+			}
+		}
+		
+		public Filters : List[Filter] { get; private set ;}
+		public FilterTypes : List[Type] {get; private set; }
+		private defaultContext : ReadOnlyDictionary[string, string];
+		
+		public this(filters : list[Filter], context : Hashtable[string, string])
+		{
+			Filters = List(filters);
+			defaultContext = ReadOnlyDictionary(context ?? Hashtable());
+		}
+		
+		public Call(content : DocumentOrHtml, context : Hashtable[string, string]): DocumentOrHtml
+		{
+			def ctx = ReadOnlyDictionary(defaultContext
+											.Concat(context ?? Hashtable())
+											.ToDictionary(k => k.Key, v => v.Value));
+			
+			FilterTypes.Fold(content, (type, doc) => buildFilter(type, doc, ctx).Call())
+		}
+		
+		private buildFilter (type : System.Type, d : DocumentOrHtml, c : ReadOnlyDictionary[string, string]) : Filter
+		{
+			((Activator.CreateInstance(type, array[d : object, c : object])) :> Filters.Filter);
+		}
+		
+		public ToDocument(content : DocumentOrHtml, context : Hashtable[string, string]) : CQ
+		{
+			Parse(Call(content, context));
+		}
+		
+		public ToHtml(content : DocumentOrHtml, context : Hashtable[string, string]) : string
+		{
+			match(Call(content, context))
+			{
+				| Document(doc) => doc.Html()
+				| HTML(html) => html
+			}
+		}
+		
+		
+	}
+}

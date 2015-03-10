@@ -1,0 +1,41 @@
+﻿using Nemerle;
+using Nemerle.Collections;
+using Nemerle.Text;
+using Nemerle.Utility;
+using Nemerle.Assertions;
+
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+
+using CsQuery;
+
+namespace nDoc.HtmlPipeline.Filters
+{
+/// <summary>
+/// Description of Filter.
+/// </summary>
+	public abstract class Filter
+	{
+		protected document : CQ;
+		protected html : string;
+		protected context : ReadOnlyDictionary[string, string];
+		
+		protected this(content : DocumentOrHtml, context : ReadOnlyDictionary[string, string])
+		{
+			match (content)
+			{
+				| Document (doc) => {document = doc; html = doc.Render() }
+				| HTML (text) => { html = text; document = CQ(html) }
+			}
+			this.context = context;
+			Validate();
+		}
+		
+		public abstract Call() : DocumentOrHtml;
+		
+		public virtual Validate() : void { }
+		
+	}
+}

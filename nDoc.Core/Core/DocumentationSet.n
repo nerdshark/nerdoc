@@ -1,0 +1,67 @@
+﻿using Nemerle;
+using Nemerle.Collections;
+using Nemerle.Text;
+using Nemerle.Utility;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using System.IO;
+using Newtonsoft.Json;
+using Nemerle.Extensions;
+
+namespace nDoc.Core
+{
+/// <summary>
+/// Description of DocumentationSet.
+/// </summary>
+    public class Index
+    {
+        public Entries : List[Entry] {get; set;}
+        public Types : List[Type] {get; set;}
+    }
+    
+    public class DocumentationSet
+    {
+        protected static indexFile = "index.json";
+        protected static dbFile = "db.json";
+        protected static manifestFile = "manifest.json";
+        
+        public Name : string {get; set;}
+        public Slug : string {get; set; }
+        public Path : string {get; set;}
+        public Version : string { get; set; }
+        
+        //public IndexPath : string {get; set;}
+        //public DbPath : string {get; set;}
+        
+        public MTime : int { get; set; }
+        public DbSize : int { get; set; }
+        
+        public Index : Index {get; private set;}
+			
+        private manifestPath : string;
+        private indexPath : string;
+        
+        public this(path : string)
+        {
+            Path = path;
+            manifestPath = $"$path\\$manifestFile";
+            indexPath = $"$path\\$indexFile";
+            
+            when (!Directory.Exists(path)) { throw DirectoryNotFoundException(path); }
+            when (!File.Exists(manifestPath)) { throw FileNotFoundException(manifestPath); }
+            when (!File.Exists(indexPath)) { throw FileNotFoundException(indexPath); }
+            
+            def manifest = JsonConvert.DeserializeObject.[Dictionary[string,string]](File.ReadAllText(manifestPath));
+            Name = manifest["name"];
+            Slug = manifest["slug"];
+            Version = manifest["version"];
+            MTime = Int32.Parse(manifest["mtime"]);
+            
+            Index = JsonConvert.DeserializeObject.[Index](File.ReadAllText(indexPath));
+            
+        }
+    }
+}
